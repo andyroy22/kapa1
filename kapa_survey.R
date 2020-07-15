@@ -5,7 +5,7 @@
 # source("meaningcloud.R")
 library(data.table)
 library(ggplot2)
-library(cluster)
+# library(cluster)
 
 # text classification
 obj <- mcTextClass(s)
@@ -103,39 +103,45 @@ topics <- search.topics$topics[1][,1]
 cn <- c("id","tag",topics)
 kapa <- alldf[lev==1,..cn]
 
-pca <- prcomp(kapa[,..topics], scale=T)
+pca <- prcomp(kapa[,..topics[1:3]], scale=T)
 xy <- data.frame(x = pca$x[,1], y = pca$x[,2])
 kapa <- cbind(kapa,xy)
 
-plot_pca_clusters <- function(xy,nc=4,ti="pca") {
+kapa_colors <- rainbow(12)[2:10]
+# ramp<-colorRamp(c("cyan","orange"))
+# col1<-rgb(ramp(seq(0,1,length=nc)),max=255)
+
+
+plot_pca_clusters <- function(xy,nc=4,ti="pca",labs=NULL) {
    # xy: x,y coord
    # nc: # of clusters
    # ti: title text
 
-   col1 <- rainbow(nc)
-
-   plot(xy,col="blue",type="p",pch=19,cex=.5,main=ti,xlab=NA,ylab=NA)
+   col1 <- kapa_colors[1:nc]
+   plot(xy,col="blue",type="n",pch=19,cex=.5,main=ti,xlab=NA,ylab=NA)
    fit <- kmeans(xy,nc)
-   for (i in 1:nc) {
-      points(xy[which(fit$cluster==i),],col=col1[i],lwd=2)
-   }
+   points(xy,col=col1[fit$cluster],pch=19,cex=1.9)
+   if (!is.null(labs)) text(xy,labels = labs,cex=0.6)
    points(fit$centers,col="red",pch=3,cex=1.2)
    legend("topleft", legend=1:nc, bty="n", lty=1, lwd=2, col=col1, cex=0.4)
    
    return(fit)
 }
 
-fit <- plot_pca_clusters(xy,6,"Kapa")
+fit <- plot_pca_clusters(xy,6,"Kapa",labs=kapa$id)
 kapa$group <- fit$cluster
 table(fit$cluster) # how many in each cluster
+kapa[id %in% c(21,25,29,30),.(id,group,tag)]
+points(xy[which(kapa$id %in% c(21,25,29,30)),],col="red",pch=19,cex=1.9)
 
-cnk <- c("tag","trait","cond","freq","most","group","id")
-write.csv(cbind(dat,kapa[,..cnk]),"kapa survey grouped-new.csv",row.names = F)
+
+cnk <- c("tag","trait","cond","freq","worse","group","id")
+write.csv(cbind(dat,kapa[,..cnk]),"kapa survey grouped-new2.csv",row.names = F)
 
 
-dat$positive[kapa$group==1]
-
-clusplot(xy,fit$cluster)
+# dat$positive[kapa$group==1]
+# 
+# clusplot(xy,fit$cluster)
 
 
 # barplot(flags.sum,main = paste("Respondent",dat$id[i],collapse = " "))

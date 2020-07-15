@@ -2,8 +2,6 @@
 # Topic Finder - revised
 #
 
-library(openxlsx)
-
 search.topics <- list()
 default_topics <- 
    "topic,w1,w2,w3,w4,w5,w6,w7,w8
@@ -93,11 +91,12 @@ flagTopics2 <- function(text) {
 }
 
 #
+# EXAMPLE USAGE
 # read reviews, search for topics & flag them
 #
 # readTopics("topiclist.csv")
 
-# reviews <- read.xlsx("Autozone/autozone product reviews.xlsx")
+# reviews <- read.csv("file.csv")
 # flags <- flagTopics(reviews$Text)
 # reviews <- cbind(reviews,flags)
 
