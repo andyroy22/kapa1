@@ -5,69 +5,19 @@
 # source("meaningcloud.R")
 library(data.table)
 library(ggplot2)
-# library(cluster)
 
-# text classification
-obj <- mcTextClass(s)
-obj$category_list$label
-
-#############
-
-simplify_text <- function(s) {
-   
-   # topic extraction
-   obj <- mcTopics(s); last_obj <<- obj
-   
-   obj$concept_list$sementity$type
-   message("entity list: ",length(obj$entity_list))
-   
-   subj <- sapply(obj$relation_list$subject$lemma_list,function(x) ifelse(is.null(x[1]),"(none)",x[1]))
-   if (length(subj)==0) subj <- "(none)"
-   verbs <- sapply(obj$relation_list$verb$lemma_list,function(x) ifelse(is.null(x[1]),"(none)",x[1]))
-   if (length(verbs)==0) verbs <- "(none)"
-
-   statements <- data.frame(subject=subj,verbs=verbs,stringsAsFactors = F)
-   
-   i_do  <- statements$verbs[statements$subject=="I" & statements$verbs!="be"]
-   i_do  <- unique(i_do); if (length(i_do)==0) i_do <- "(none)"
-   message("i_do: ",paste(i_do,collapse = '\n'))
-   
-   it_be <- statements$subject[statements$verbs=="be" & statements$subject!="I"]
-   it_be <- unique(it_be); if (length(it_be)==0) it_be <- "(none)"
-   message("it_be: ",paste(it_be, collapse = '\n'))
-
-   complements <- NULL
-   for (i in 1:length(obj$relation_list$complement_list)) {
-      df <- as.data.frame(obj$relation_list$complement_list[[i]])
-      if (is.null(complements)) complements <- df else complements <- rbind(complements,df)
-   }
-   
-   attribs <- complements$form[complements$type=="isAttribute"]
-   attribs <- unique(attribs); if (length(attribs)==0) attribs <- "(none)"
-   message("attribs: ",paste(attribs,collapse = '\n'))
-
-   # build table   
-   df <- data.frame(type="do",text=i_do,stringsAsFactors = F)
-   
-   df <- rbind(df,
-               data.frame(type="be",text=it_be,stringsAsFactors = F))
-   
-   df <- rbind(df,
-               data.frame(type="attr",text=attribs,stringsAsFactors = F))
-
-   message("simplify_text: ",nrow(df))
-   return(df)
-}
 
 fn  <- "kapa survey responses 2020-06-29.csv"
 dat <- fread(fn)
+readTopics("kapa phrases.csv")
 
 # save rows into alldf (global)
-save_rows <- function(id,tg,df) {
+save_rows <- function(id,tg,df,txt1="") {
    # save rows to global alldf
    temp <- cbind(data.frame(
                   id=rep(id,nrow(df)),
-                  tag=rep(tg,nrow(df)),stringsAsFactors = F),
+                  tag=rep(tg,nrow(df)),
+                  text=txt1,stringsAsFactors = F),
                df)
    if (is.null(alldf)) 
       alldf <<- as.data.table(temp)
@@ -95,28 +45,20 @@ for (i in 1:nrow(dat)) {
    flags <- rbind(flags,flags.sum)
    flags <- cbind(flags,data.frame(lev=lev))
 
-   save_rows(dat$id[i],nrow(flags),flags)
+   save_rows(dat$id[i],nrow(flags),flags,c(txt1,""))
 
 }
 
-topics <- search.topics$topics[1][,1]
-cn <- c("id","tag",topics)
-kapa <- alldf[lev==1,..cn]
-
-pca <- prcomp(kapa[,..topics[1:3]], scale=T)
-xy <- data.frame(x = pca$x[,1], y = pca$x[,2])
-kapa <- cbind(kapa,xy)
-
-kapa_colors <- rainbow(12)[2:10]
+## Cluster plot
+kapa_colors <- rainbow(12,alpha=0.5)[2:10]
 # ramp<-colorRamp(c("cyan","orange"))
 # col1<-rgb(ramp(seq(0,1,length=nc)),max=255)
-
 
 plot_pca_clusters <- function(xy,nc=4,ti="pca",labs=NULL) {
    # xy: x,y coord
    # nc: # of clusters
    # ti: title text
-
+   
    col1 <- kapa_colors[1:nc]
    plot(xy,col="blue",type="n",pch=19,cex=.5,main=ti,xlab=NA,ylab=NA)
    fit <- kmeans(xy,nc)
@@ -128,15 +70,39 @@ plot_pca_clusters <- function(xy,nc=4,ti="pca",labs=NULL) {
    return(fit)
 }
 
+## Analysis
+topics <- search.topics$topics[1][,1]
+
+cn <- c("id","tag",topics)
+kapa <- alldf[lev==1,..cn]
+
+kapa <- kapa[tag>10,]
+
+# PCA
+# topics <- c("cond","freq","because")
+pca <- prcomp(kapa[,..topics], scale=T)
+xy <- data.frame(x = pca$x[,1], y = pca$x[,2])
+kapa <- cbind(kapa,xy)
+
 fit <- plot_pca_clusters(xy,6,"Kapa",labs=kapa$id)
 kapa$group <- fit$cluster
 table(fit$cluster) # how many in each cluster
-kapa[id %in% c(21,25,29,30),.(id,group,tag)]
-points(xy[which(kapa$id %in% c(21,25,29,30)),],col="red",pch=19,cex=1.9)
+favorites <- which(kapa$id %in% c(21,25,29,30))
+kapa[favorites,.(id,group,tag,because)]
+points(xy[favorites,],col="red",pch=19,cex=1.9)
+
+# look at only longer responses
+kapa <- kapa[tag>10,]
+# >> run the analysis <<
+# >> choose group with most favorites <<
+
+kapa <- kapa[group==3,]
+dat.show <- dat[kapa,,on="id"]
+write.csv(dat.show,"kapa survey subset-15JUL.csv",row.names = F)
 
 
-cnk <- c("tag","trait","cond","freq","worse","group","id")
-write.csv(cbind(dat,kapa[,..cnk]),"kapa survey grouped-new2.csv",row.names = F)
+# cnk <- c("tag","trait","cond","freq","worse","group","because","id")
+
 
 
 # dat$positive[kapa$group==1]
@@ -203,6 +169,8 @@ write.csv(alldf,"kapa1-3.csv",row.names = F)
 # https://grammar.yourdictionary.com/parts-of-speech/adjectives/personal-adjective.html
 # https://learnersdictionary.com/3000-words/topic/personality-types
 
+
+### TEXT MINING
 
 library(tm)
 library(tidytext)
@@ -296,4 +264,54 @@ htmlFile <- file.path(tempDir, "test.html")
 writeLines(as.character(doc), htmlFile)
 rstudioapi::viewer(htmlFile)
 
+### Meaning Cloud - not in use
+# text classification
+# obj <- mcTextClass(s)
+# obj$category_list$label
+
+# simplify_text <- function(s) {
+#    
+#    # topic extraction
+#    obj <- mcTopics(s); last_obj <<- obj
+#    
+#    obj$concept_list$sementity$type
+#    message("entity list: ",length(obj$entity_list))
+#    
+#    subj <- sapply(obj$relation_list$subject$lemma_list,function(x) ifelse(is.null(x[1]),"(none)",x[1]))
+#    if (length(subj)==0) subj <- "(none)"
+#    verbs <- sapply(obj$relation_list$verb$lemma_list,function(x) ifelse(is.null(x[1]),"(none)",x[1]))
+#    if (length(verbs)==0) verbs <- "(none)"
+#    
+#    statements <- data.frame(subject=subj,verbs=verbs,stringsAsFactors = F)
+#    
+#    i_do  <- statements$verbs[statements$subject=="I" & statements$verbs!="be"]
+#    i_do  <- unique(i_do); if (length(i_do)==0) i_do <- "(none)"
+#    message("i_do: ",paste(i_do,collapse = '\n'))
+#    
+#    it_be <- statements$subject[statements$verbs=="be" & statements$subject!="I"]
+#    it_be <- unique(it_be); if (length(it_be)==0) it_be <- "(none)"
+#    message("it_be: ",paste(it_be, collapse = '\n'))
+#    
+#    complements <- NULL
+#    for (i in 1:length(obj$relation_list$complement_list)) {
+#       df <- as.data.frame(obj$relation_list$complement_list[[i]])
+#       if (is.null(complements)) complements <- df else complements <- rbind(complements,df)
+#    }
+#    
+#    attribs <- complements$form[complements$type=="isAttribute"]
+#    attribs <- unique(attribs); if (length(attribs)==0) attribs <- "(none)"
+#    message("attribs: ",paste(attribs,collapse = '\n'))
+#    
+#    # build table   
+#    df <- data.frame(type="do",text=i_do,stringsAsFactors = F)
+#    
+#    df <- rbind(df,
+#                data.frame(type="be",text=it_be,stringsAsFactors = F))
+#    
+#    df <- rbind(df,
+#                data.frame(type="attr",text=attribs,stringsAsFactors = F))
+#    
+#    message("simplify_text: ",nrow(df))
+#    return(df)
+# }
 
