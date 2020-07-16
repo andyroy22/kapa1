@@ -72,23 +72,28 @@ plot_pca_clusters <- function(xy,nc=4,ti="pca",labs=NULL) {
 
 ## Analysis
 topics <- search.topics$topics[1][,1]
-
 cn <- c("id","tag",topics)
 kapa <- alldf[lev==1,..cn]
 
-kapa <- kapa[tag>10,]
+
+# kapa <- kapa[tag>10,]
+kapa <- kapa[coh[,.(id,LDMTLD)],,on="id"]
 
 # PCA
-# topics <- c("cond","freq","because")
+topics <- c("LDMTLD","cond","freq")
+topics <- c("LDMTLD",topics)
+
 pca <- prcomp(kapa[,..topics], scale=T)
 xy <- data.frame(x = pca$x[,1], y = pca$x[,2])
 kapa <- cbind(kapa,xy)
 
-fit <- plot_pca_clusters(xy,6,"Kapa",labs=kapa$id)
+fit <- plot_pca_clusters(xy,4,"Kapa",labs=kapa$id)
 kapa$group <- fit$cluster
+
 table(fit$cluster) # how many in each cluster
 favorites <- which(kapa$id %in% c(21,25,29,30))
-kapa[favorites,.(id,group,tag,because)]
+cn <- c("id","group",topics)
+kapa[favorites,..cn]
 points(xy[favorites,],col="red",pch=19,cex=1.9)
 
 # look at only longer responses
@@ -100,14 +105,8 @@ kapa <- kapa[group==3,]
 dat.show <- dat[kapa,,on="id"]
 write.csv(dat.show,"kapa survey subset-15JUL.csv",row.names = F)
 
-
 # cnk <- c("tag","trait","cond","freq","worse","group","because","id")
 
-
-
-# dat$positive[kapa$group==1]
-# 
-# clusplot(xy,fit$cluster)
 
 
 # barplot(flags.sum,main = paste("Respondent",dat$id[i],collapse = " "))
@@ -144,25 +143,6 @@ ggplot(ggdat,aes(x=variable,y=value,fill=id)) +
    geom_bar(stat="identity") + facet_grid(rows = ggdat$id) +
    labs(x=NULL,y=NULL) + theme(legend.position = "none")
 
-## OLD version
-# for (i in 1:nrow(dat)) {
-for (i in 15:15) {
-   message("id: ",dat$id[i])
-   
-   txt1 <- trimws(unlist(strsplit(dat$positive[i],"\\.")))
-   for (j in 1:length(txt1)) {
-      df <- simplify_text(txt1[j])
-      df <- df[df$text!="(none)",]
-      if (nrow(df)>0) save_rows(dat$id[i],"pos",df)
-   }
-   
-   df <- simplify_text(dat$negative[i])
-   save_rows(dat$id[i],"pos",df)
-   
-   message("loop, alldf: ", nrow(alldf))
-}
-
-write.csv(alldf,"kapa1-3.csv",row.names = F)
 
 ####
 # https://grammar.yourdictionary.com/style-and-usage/words-that-describe-personality-traits.html
@@ -264,54 +244,16 @@ htmlFile <- file.path(tempDir, "test.html")
 writeLines(as.character(doc), htmlFile)
 rstudioapi::viewer(htmlFile)
 
-### Meaning Cloud - not in use
-# text classification
-# obj <- mcTextClass(s)
-# obj$category_list$label
+## Coh-Metrix data import
+coh <- fread("cohmetrix-POSNEGcombined.csv")
+coh.desc <- as.character(coh[1,])
+names(coh.desc) <- names(coh)
+write.csv(coh.desc,"cohmetrix-fields.csv")
 
-# simplify_text <- function(s) {
-#    
-#    # topic extraction
-#    obj <- mcTopics(s); last_obj <<- obj
-#    
-#    obj$concept_list$sementity$type
-#    message("entity list: ",length(obj$entity_list))
-#    
-#    subj <- sapply(obj$relation_list$subject$lemma_list,function(x) ifelse(is.null(x[1]),"(none)",x[1]))
-#    if (length(subj)==0) subj <- "(none)"
-#    verbs <- sapply(obj$relation_list$verb$lemma_list,function(x) ifelse(is.null(x[1]),"(none)",x[1]))
-#    if (length(verbs)==0) verbs <- "(none)"
-#    
-#    statements <- data.frame(subject=subj,verbs=verbs,stringsAsFactors = F)
-#    
-#    i_do  <- statements$verbs[statements$subject=="I" & statements$verbs!="be"]
-#    i_do  <- unique(i_do); if (length(i_do)==0) i_do <- "(none)"
-#    message("i_do: ",paste(i_do,collapse = '\n'))
-#    
-#    it_be <- statements$subject[statements$verbs=="be" & statements$subject!="I"]
-#    it_be <- unique(it_be); if (length(it_be)==0) it_be <- "(none)"
-#    message("it_be: ",paste(it_be, collapse = '\n'))
-#    
-#    complements <- NULL
-#    for (i in 1:length(obj$relation_list$complement_list)) {
-#       df <- as.data.frame(obj$relation_list$complement_list[[i]])
-#       if (is.null(complements)) complements <- df else complements <- rbind(complements,df)
-#    }
-#    
-#    attribs <- complements$form[complements$type=="isAttribute"]
-#    attribs <- unique(attribs); if (length(attribs)==0) attribs <- "(none)"
-#    message("attribs: ",paste(attribs,collapse = '\n'))
-#    
-#    # build table   
-#    df <- data.frame(type="do",text=i_do,stringsAsFactors = F)
-#    
-#    df <- rbind(df,
-#                data.frame(type="be",text=it_be,stringsAsFactors = F))
-#    
-#    df <- rbind(df,
-#                data.frame(type="attr",text=attribs,stringsAsFactors = F))
-#    
-#    message("simplify_text: ",nrow(df))
-#    return(df)
-# }
+coh <- coh[-1,]
+names(coh)[1] <- "id"
+write.csv(coh,"coh-metrix kapa.csv",row.names = F)
+
+coh <- fread("coh-metrix kapa.csv")
+
 
