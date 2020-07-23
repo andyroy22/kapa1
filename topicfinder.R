@@ -2,17 +2,18 @@
 # Topic Finder - revised
 #
 
-search.topics <- list()
-default_topics <- 
-   "topic,w1,w2,w3,w4,w5,w6,w7,w8
-parts,batter,spark,valve,belt,wiper,,,
-inventory,carry,do you sell,do they,,,,,
-price,how much,expens,too high,cuanto,price,cost,bucks,	
-service,customer,service,rude,professional,helpful,above and,friendly,
-carmakes,Nissan,Honda,Toyota,Ford,,,,"
-
 # read topic phrases file & store in global: search.topics
 readTopics <- function(csv_file=NA) {
+   if (!exists("search.topics")) {
+      search.topics <<- list()
+      default_topics <<- 
+         "topic,w1,w2,w3,w4,w5,w6,w7,w8
+      parts,batter,spark,valve,belt,wiper,,,
+      inventory,carry,do you sell,do they,,,,,
+      price,how much,expens,too high,cuanto,price,cost,bucks,	
+      service,customer,service,rude,professional,helpful,above and,friendly,
+      carmakes,Nissan,Honda,Toyota,Ford,,,,"
+   }
    if (is.na(csv_file)) {
       search.topics$topics <<- 
          read.table(text=default_topics,sep=",",header=T,stringsAsFactors=F)
@@ -22,6 +23,7 @@ readTopics <- function(csv_file=NA) {
       search.topics$topics <<- read.csv(csv_file,stringsAsFactors=F)
       search.topics$topics[search.topics$topics==""] <<- NA
       search.topics$topics <<- search.topics$topics[!is.na(search.topics$topics$topic),]
+      search.topics$topics$topic <<- gsub("\\#","",search.topics$topics$topic)
    }
    
    search.topics$maxwords  <<- length(search.topics$topics[1,])
