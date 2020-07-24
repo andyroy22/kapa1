@@ -1,0 +1,12 @@
+case,degree,biz,change,public,wealth
+andy,D2,Y,Y,Y,M
+john,D1,Y,Y,Y,M
+dana,D3,N,N,N,H
+debbie,D3,Y,N,N,H
+sam,D2,N,Y,Y,M
+ron,D2,N,N,N,H
+david,D2,N,N,N,M
+nick,D1,N,N,N,M
+joe,D1,N,N,N,L
+mary,D1,N,N,N,L
+dan,D3,N,N,Y,M
