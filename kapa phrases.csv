@@ -1,5 +1,5 @@
-"topic","w1","w2","w3","w4","w5","w6","w7","w8","w9"
-"myself","i am","i'm like","i have","qualit","tend","","","",""
-"#when","when i","whenever i","if i","once i","yet","tend","then i","when they","in .* situations"
-"often","sometime","usually","never","always","most part","mostly","","",""
-"because","since","so i","","","","","","",""
+topic,w1,w2,w3,w4,w5,w6,w7,w8,w9
+myself,i am,i'm like,i have,qualit,i tend to,general,,,
+#when,when i,whenever i,if i,once i,then i,in .* situations,when they,whenever they,
+often,sometime,usually,never,always,most part,mostly,tend,,
+because,since, so i,,,,,,,
