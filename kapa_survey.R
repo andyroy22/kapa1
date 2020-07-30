@@ -6,12 +6,12 @@ library(data.table)
 
 source("topicfinder.R")
 
-fn  <- "kapa survey responses 2020-06-29.csv"
+fn  <- "data/kapa survey responses 2020-06-29.csv"
 dat <- fread(fn)
 topics <- readTopics("kapa phrases.csv")
 
 ## Hand Coded classification
-hand <- fread("kapa survey - hand coded.csv")
+hand <- fread("data/kapa survey - hand coded.csv")
 hand <- hand[,.(id,code)]
 names(hand)[2]<-"inconsistent"
 
